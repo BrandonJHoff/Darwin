@@ -14,11 +14,11 @@ const createPlane = ({ p5 }) => ({
   pos: p5.createVector(25, p5.height / 2),
   vel: p5.createVector(),
   acc: p5.createVector(),
-  color: p5.color('#0f0'),
+  color: p5.color('lime'),
   status: STATUS.FLYING,
   cycleArrived: null,
   fitness: 0,
-  minDist: Infinity
+  isFirst: false
 })
 
 const create = ({ DNA }) => ({ lifespan, p5 }) => {
@@ -51,7 +51,7 @@ const update = ({ plane, cycle, lifespan, destination, obstacles, p5 }) => {
       ...plane,
       status: STATUS.ARRIVED,
       cycleArrived: cycle,
-      fitness: 1 * Math.pow(((cycle / lifespan) + 0.00000001), 4) * 10
+      fitness: Math.pow((lifespan / cycle), 20) * 100
     }
   }
 
@@ -60,7 +60,7 @@ const update = ({ plane, cycle, lifespan, destination, obstacles, p5 }) => {
     return {
       ...plane,
       status: STATUS.FLED,
-      color: p5.color('magenta'),
+      color: p5.color('Fuchsia'),
       fitness: plane.fitness * 0.3
     }
   }
@@ -76,16 +76,15 @@ const update = ({ plane, cycle, lifespan, destination, obstacles, p5 }) => {
   }
 
   // update position
-  const newVel = plane.vel.add(plane.acc).limit(MAX_SPEED)
   const newAcc = plane.acc.add(plane.dna.genes[cycle])
+  const newVel = plane.vel.add(newAcc).limit(MAX_SPEED)
 
   return {
     ...plane,
     vel: newVel,
     pos: plane.pos.add(newVel),
-    acc: newAcc,
-    fitness: Math.pow(1 / (Math.min(absDist, plane.minDist) + 0.00000001), 3),
-    minDist: Math.min(absDist, plane.minDist)
+    acc: newAcc.mult(0),
+    fitness: Math.max(plane.fitness, Math.pow((lifespan - (absDist + (cycle / lifespan))) / lifespan, 3))
   }
 }
 
@@ -116,9 +115,9 @@ const calcDistanceToLineSegment = ({ plane, obstacle, p5 }) => {
 // ──── DRAW ──────────────────────────────────────────────────────────────────────────────
 // ########################################################################################
 const draw = ({ plane, p5 }) => {
-  p5.strokeWeight(1)
+  p5.strokeWeight(plane.isFirst ? 3 : 1)
   p5.stroke(plane.color)
-  p5.noFill() // It is more performant without filling
+  if (!plane.isFirst) p5.noFill() // It is more performant without filling
 
   const r = 3
   const angle = plane.vel.heading()
@@ -141,6 +140,7 @@ const breed = ({ DNA }) => ({ planeA, planeB, p5 }) => {
 // ──── FINISHED ──────────────────────────────────────────────────────────────────────────
 // ########################################################################################
 const finished = ({ plane }) => plane.status !== STATUS.FLYING
+const hasArrived = ({ plane }) => plane.status === STATUS.ARRIVED
 
 // ########################################################################################
 // ──── RESET ─────────────────────────────────────────────────────────────────────────────
@@ -153,8 +153,7 @@ const reset = ({ plane, p5 }) => {
     acc: p5.createVector(),
     color: p5.color('magenta'),
     status: STATUS.FLYING,
-    fitness: 0,
-    minDist: Infinity
+    fitness: 0
   }
 }
 
@@ -167,7 +166,8 @@ const Plane = ({ DNA }) => ({
   draw,
   breed: breed({ DNA }),
   finished,
-  reset
+  reset,
+  hasArrived
 })
 
 export default Plane

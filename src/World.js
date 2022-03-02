@@ -5,7 +5,7 @@ const setup = ({ Population, p5, width, height, x, y, state }) => () => {
   const cnv = p5.createCanvas(width, height)
   cnv.position(x, y)
 
-  state.population = Population.create({ lifespan: Math.floor(width), numIndividuals: 100, p5 })
+  state.population = Population.create({ lifespan: Math.floor(width), numIndividuals: 200, p5 })
   state.destination = p5.createVector(width - 25, height / 2)
   state.obstacles = []
   state.mouse = { x: null, y: null }
@@ -21,13 +21,16 @@ const draw = ({ Population, p5, width, height, x, y, state }) => () => {
 
   state.population = Population.update({ ...state, p5 })
 
+  if (state.population.anyArrived) {
+    p5.stroke(255)
+    p5.fill('lime')
+  }
   p5.ellipse(state.destination.x, state.destination.y, 12, 12)
   p5.noStroke()
   p5.fill(255)
 
-  p5.text(`Time: ${state.population.cycle}`, 10, height - 50)
+  p5.text(`Time: ${state.population.cycle} -- Time Left: ${state.population.lifespan - state.population.cycle}`, 10, height - 50)
   p5.text(`Generation: ${state.population.generation}`, 10, height - 30)
-  //   if (population.gen_best_time !== Infinity) text(`Best: ${population.gen_best_time}`, 105, height - 30)
   if (state.population.bestOverallTime !== Infinity) p5.text(`Overall Best: ${state.population.bestOverallTime}`, 10, height - 10)
 
   Population.draw({ ...state, p5 })

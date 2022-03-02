@@ -11,7 +11,8 @@ const create = ({ Plane }) => ({ lifespan, numIndividuals, p5 }) => {
     bestOverallName: '',
     bestGenTime: Infinity,
     cycle: 0,
-    allFinished: false
+    allFinished: false,
+    anyArrived: false
   }
 }
 
@@ -28,12 +29,14 @@ const update = ({ Plane }) => ({ population, p5, destination, obstacles }) => {
 
   const planes = population.planes.map(plane => Plane.update({ plane, cycle: population.cycle, lifespan: population.lifespan, destination, obstacles, p5 }))
   const allFinished = planes.every(plane => Plane.finished({ plane }))
+  const anyArrived = planes.some(plane => Plane.hasArrived({ plane }))
 
   return {
     ...population,
     planes,
     allFinished,
-    cycle: population.cycle + 1
+    cycle: population.cycle + 1,
+    anyArrived
   }
 }
 
@@ -54,17 +57,18 @@ const evolve = ({ Plane }) => ({ population, destination, p5 }) => {
     cycle: 0,
     planes: generateNextGeneration({ Plane, population, p5 }),
     allFinished: false,
+    anyArrived: false,
     bestOverallTime: population.planes.reduce((acc, plane) => plane.cycleArrived ? Math.min(acc, plane.cycleArrived) : acc, population.bestOverallTime)
   }
 }
 
 const generateNextGeneration = ({ Plane, population, p5 }) => {
   const sortedPlanes = population.planes.sort((a, b) => b.fitness - a.fitness)
-  const newPlanes = [{ ...Plane.reset({ plane: sortedPlanes[0], p5 }), color: p5.color('yellow') }]
+  const newPlanes = [{ ...Plane.reset({ plane: sortedPlanes[0], p5 }), color: p5.color('yellow'), isFirst: true }]
 
   return newPlanes.concat(Array(population.maxPlanes - 1).fill(0).map(() => {
-    const planeA = pickOne({ planes: population.planes, p5, population })
-    const planeB = pickOne({ planes: population.planes.filter(p => p !== planeA), p5, population })
+    const planeA = pickOne({ planes: sortedPlanes, p5, population })
+    const planeB = pickOne({ planes: sortedPlanes.filter(p => p !== planeA), p5, population })
 
     return Plane.breed({ planeA, planeB, p5 })
   }))
